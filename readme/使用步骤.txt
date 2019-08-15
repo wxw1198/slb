@@ -1,0 +1,89 @@
+一，把binaries目录整体copy到centos的目录下：
+例如整体copy到/mnt/hgfs/svn_2/go/src/slb/目录下
+
+
+二，配置binaries下engine目录的配置文件：
+#IP and port
+[local_server]
+listen_port=8082  engine模块的监听端口，用于监听config模块的发过来的“/yfy/server/configinfo”请求更新数据库里面服务器信息。用于监听客户的：“/yfy/user/policy” 和 /yfy/select/lb/server
+[log]
+name=engine.log   engine模块的log路径和名称。 log位于/var/log/go/目录下
+
+
+三，配置binaries下heathcheck目录的配置文件：
+[WEB]
+listen_port=8081  heathcheck 模块的监听端口，用于监听config模块的发过来的“/yfy/server/configinfo”请求更新数据库里面服务器信息。
+[log]
+name=healthcheck.log
+[SQL]
+userName=root
+password=yunYUN123
+listenIp=101.132.99.183
+listenPort=3306
+dbName=otvcloud
+
+
+
+四，把slb_svr和slb_policy两张数据表，放到数据库上，填写服务器信息
+
+
+五，配置binaries下config目录的配置文件：
+#Web设置
+[WEB]
+listen_ip=0.0.0.0
+listen_port=8082
+SlbStateInterface=http://192.168.59.128:8082/yfy/server/state    包含engine模块的监听端口的url，heathcheck会定期通过该url 向engine模块上报各个服务器状态。                                                  
+[PurposeUrl]
+SlbHealthycheckUrl=http://192.168.59.128:8081/yfy/server/configinfo   通知healthcheck模块更新server信息的url
+SlbEngineUrl=http://192.168.59.128:8082/yfy/server/configinfo    通知enging模块更新server信息的url
+
+[SQL]                                                     数据库用于存储服务器信息
+userName=root                                             数据库名
+password=yunYUN123                                        密码
+listenIp=101.132.99.183                                    
+listenPort=3306
+dbName=otvcloud
+
+
+
+六，配置binaries下health_server目录的配置文件：
+该模块copy到各个服务器上，收集各个服务器上健康信息。 并把服务器健康信息上报给 healthcheck 模块，healthcheck模块收集各个服务器的健康信息定期上报给engine
+
+[WEB]
+listen_port=80   与数据库中server的监听端口相对应， health_server根据此端口开启udp监听，监听healthcheck发过来的查询健康状态的请求。
+[log]
+name=healthcheck_server.log
+
+七，配置binaries下watch_dog目录的配置文件：
+
+[healthcheck]
+binary = /mnt/hgfs/svn_2/go/src/slb/binaries/healthcheck/slb_healthcheck    需要看守的模块的路径及文件名（必填）
+workpath = /mnt/hgfs/svn_2/go/src/slb/binaries/healthcheck/                 指定工作路径 （必填 ）
+priority = -10                                                              线程优先级 （选填）
+dependency = engine                                                         依赖模块  （选填）
+
+[engine]
+priority = -15
+binary = /mnt/hgfs/svn_2/go/src/slb/binaries/engine/slb_engine
+workpath = /mnt/hgfs/svn_2/go/src/slb/binaries/engine/
+
+[config]
+priority = -15
+binary = /mnt/hgfs/svn_2/go/src/slb/binaries/config/slb_config
+workpath = /mnt/hgfs/svn_2/go/src/slb/binaries/config/
+dependency = engine
+
+八，运行。
+开启看门狗 即可开启所配置的全部模块，关闭看门狗即可关闭所有模块，看门狗会自动重启死掉的线程。
+
+
+
+
+
+
+
+
+
+
+
+
